@@ -5,18 +5,21 @@ Based on the "Clustering High-Dimensional Time Series Based on Parallelism" by T
 
 
 --- PREREQUISITES ---
+
 Python 2.7, Numpy, Math, SciPy, scikit-learn, csv, time
 
 
 
 
 --- INSTALLATION ---
+
 Simply copy the files to the directory from which you want to work with them (for example, your project's directory).
 
 
 
 
 --- USAGE ---
+
 The project contains three user-friendly functions:
   
   
