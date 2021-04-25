@@ -77,4 +77,8 @@ The project contains three user-friendly functions:
         ```
         
         
-  File run_simulation.py can be run directly ("python run_simulation.py). It runs a number of simulations with different combinations of parameter values (which can be specified in the file itself), multiple instances of which, and produces a .csv-file containing mean and median adjusted Rand Indices for each combination.
+  File run_simulation.py can be run directly: 
+  ```bash
+  python run_simulation.py
+  ```
+  It runs a number of simulations with different combinations of parameter values (which can be specified in the file itself), multiple instances of which, and produces a .csv-file containing mean and median adjusted Rand Indices for each combination.
