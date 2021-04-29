@@ -2,7 +2,7 @@ from __future__ import division
 import numpy as np
 import math
 from sklearn import metrics
-from scipy.special import legendre
+from scipy.special import eval_legendre
 
 
 # Calculates the adjusted rand index of the test partition versus the true partition. Each partition is a list of lists of data point indeces.
@@ -44,13 +44,12 @@ def get_rademacher_gaussian_simulation_data (p, n, split_list, sigma_squared, s)
                 true_partition.append(range(max(true_partition[i-1])+1,int(math.floor(r*p)),1)) 
         true_partition.append(range(max(true_partition[i])+1,p,1))
     for q, P in enumerate(true_partition):
-        l_legendre = legendre(s+q) 
         for k in P:
             nu_list, nu = [], np.random.normal(0,1)
             nu_list.append(nu)
             for i in range(1, n, 1):
                 nu = (0.5*(i+1)/n-0.2)*nu + np.random.normal(0,1)
                 nu_list.append(nu)    
-            y.append([l_legendre(2*(i+1)/n-1)+(k+1)-3-5*math.floor((k+1)/5)+2*np.sqrt(sigma_squared)*(((i+1)/n-0.5)**2)*nu_list[i] for i in range(n)])
+            y.append([eval_legendre(s+q,2*(i+1)/n-1)+(k+1)-3-5*math.floor((k+1)/5)+2*np.sqrt(sigma_squared)*(((i+1)/n-0.5)**2)*nu_list[i] for i in range(n)])
     y = np.array(y)
     return [y, true_partition]

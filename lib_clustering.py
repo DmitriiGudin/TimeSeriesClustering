@@ -11,10 +11,9 @@ def K(v):
 # ---
 # t - argument.
 # j - power.
-# y - data matrix.
 # b - bandwidth.
 # n - number of data points for each function.
-def S(t, j, y, b, n):
+def S(t, j, b, n):
     return sum([((t-i/n)**j) * K((i/n-t)/b) for i in range(1, n+1, 1)])
     
     
@@ -22,20 +21,18 @@ def S(t, j, y, b, n):
 # ---
 # t - argument.
 # i - index.
-# y - data matrix.
 # b - bandwidth.
 # n - number of data points for each function.
-def w(t, i, y, b, n):
-    return K((i/n - t)/b) * (S(t, 2, y, b, n) - (t - i/n)*S(t, 1, y, b, n))
+def w(t, i, b, n):
+    return K((i/n - t)/b) * (S(t, 2, b, n) - (t - i/n)*S(t, 1, b, n))/(S(t, 2, b, n)*S(t, 0, b, n)-S(t, 1, b, n)**2)
     
     
 # Returns the list of associated hat matrices H(b) for specified array of values of b.
 # ---
 # b_array - array of bandwidth values.
-# y - data matrix.   
 # n - number of data points for each function.
-def get_associated_hat_matrix(b_array, y, n):
-    return [np.array([[w(i/n, j, y, b, n) for j in range(1, n+1, 1)] for i in range(1, n+1, 1)]) for b in b_array]
+def get_associated_hat_matrix(b_array, n):
+    return [np.array([[w(i/n, j, b, n) for i in range(1, n+1, 1)] for j in range(1, n+1, 1)]) for b in b_array]
     
     
 # Returns the list of hat(Y) data matrices for specified array of values of b.
@@ -46,7 +43,7 @@ def get_associated_hat_matrix(b_array, y, n):
 # p - number of functions to cluster over.
 # n - number of data points for each function.
 def get_Y_hat(y, H_matrix_list, p, n):
-    return [np.array([[sum([H_matrix_list[l][j][k]*y[i][k] for k in range(n)]) for j in range(n)] for i in range(p)]) for l in range(len(H_matrix_list))]
+    return [np.array([[sum([H_matrix_list[l][k][j]*y[i][k] for k in range(n)]) for j in range(n)] for i in range(p)]) for l in range(len(H_matrix_list))]
     
     
 # Returns the list of p x n matrices of e_{k,i} values for specified array of values of b.
@@ -98,13 +95,15 @@ def get_GCV(b_array, y, H_matrix_list, Gamma_n_inv_list, Y_hat_list, p, n):
 # subset - a subset of {1, 2, ..., p).
 # y - data matrix.    
 # Y_hat - the Y_hat matrix.
+# p - number of functions to cluster over.
 # n - number of data points for each function. 
-def get_removed_S_indices(subset, y, Y_hat, n):
+def get_removed_S_indices(subset, y, Y_hat, p, n):
     indices_list, remaining_list = [], subset
     while len(remaining_list) > 1:
         average_Y_hat = np.array([np.mean([Y_hat[l][i] for l in remaining_list]) for i in range(n)])
-        RSS_list = np.array([sum([(y[k][i]-average_Y_hat[i])**2 for i in range(n)]) for k in remaining_list])
-        index = remaining_list[np.where(RSS_list==min(RSS_list))[0][0]]
+        average_c_k = np.array([np.mean([Y_hat[l][i]-average_Y_hat[i] for i in range(n)]) for l in range(p)])
+        RSS_list = np.array([sum([(y[k][i]-average_Y_hat[i]-average_c_k[k])**2 for i in range(n)]) for k in remaining_list])
+        index = remaining_list[np.where(RSS_list==max(RSS_list))[0][0]]
         indices_list.append(index)
         remaining_list.remove(index)
     indices_list.append(remaining_list[0])
@@ -121,15 +120,16 @@ def get_removed_S_indices(subset, y, Y_hat, n):
 # p - number of functions to cluster over.
 # n - number of data points for each function. 
 def get_first_cluster(subset, b, gamma, y, Y_hat, p, n):
-    removed_S_indices_list = get_removed_S_indices(subset, y, Y_hat, n)
+    removed_S_indices_list = get_removed_S_indices(subset, y, Y_hat, p, n)
     S_list, current_indices_list = [], removed_S_indices_list[:]
     for i in removed_S_indices_list:
         S_list.append(current_indices_list[:])
         current_indices_list.remove(i)
     average_Y_hat_S_list = np.array([[np.mean([Y_hat[l][i] for l in S]) for i in range(n)] for S in S_list])
-    RSS_S_list = np.array([sum([sum([(y[k][i]-average_Y_hat_S_list[j][i])**2 for i in range(n)]) for k in S]) for j, S in enumerate(S_list)])
-    RSS_i_list = np.array([sum([(y[k][i]-average_Y_hat_S_list[j][i])**2 for i in range(n)]) for j, k in enumerate(removed_S_indices_list)])
-    EBIC_array = np.array([n*p*np.log10(rss_s + sum(RSS_i_list[(len(removed_S_indices_list)-i):]))+(1/b-1)*(i+1)*((1-gamma)*np.log10(n*b)+gamma*np.sqrt(n*b)) for i, rss_s in enumerate(RSS_S_list)])
+    average_c_k_S_list = np.array([[np.mean([Y_hat[l][i]-average_Y_hat_S_list[j][i] for i in range(n)]) for l in range(p)] for j, S in enumerate(S_list)])
+    RSS_S_list = np.array([sum([sum([(y[k][i]-average_Y_hat_S_list[j][i]-average_c_k_S_list[j][k])**2 for i in range(n)]) for k in S]) for j, S in enumerate(S_list)])
+    RSS_i_list = np.array([sum([(y[k][i]-average_Y_hat_S_list[j][i]-average_c_k_S_list[j][k])**2 for i in range(n)]) for j, k in enumerate(removed_S_indices_list)])
+    EBIC_array = np.array([n*p*np.log10((rss_s + sum(RSS_i_list[(len(removed_S_indices_list)-i):]))/(n*p))+(1/b-1)*(i+1)*((1-gamma)*np.log10(n*b)+gamma*np.sqrt(n*b)) for i, rss_s in enumerate(RSS_S_list)])
     return S_list[np.where(EBIC_array == min(EBIC_array))[0][0]]
     
     
@@ -180,7 +180,7 @@ def get_clusters(y, bandwidth=0.5, gamma=1, DEBUG=False):
     
         # Calculate the associated hat matrix for hat(Y)_k(b) for all present values of b.
         Print("Calculating the list of the associated hat matrices H(b)...")
-        H_matrix_list = get_associated_hat_matrix(b_array, y, n)
+        H_matrix_list = get_associated_hat_matrix(b_array, n)
         Print("Done.")
         
         # Calculate the hat(Y) data matrix for all present values of b.
@@ -221,7 +221,7 @@ def get_clusters(y, bandwidth=0.5, gamma=1, DEBUG=False):
         Print("STARTING THE CLUSTERING PROCEDURE.")
         Print("Using the bandwidth value b="+str(b)+".")
         # Calculating the associated hat matrix for the specific bandwidth value:
-        H_matrix = get_associated_hat_matrix([b], y, n)[0]
+        H_matrix = get_associated_hat_matrix([b], n)[0]
         Y_hat = get_Y_hat(y, [H_matrix], p, n)[0]
     Print("Using the gamma value "+str(gamma)+".")
     

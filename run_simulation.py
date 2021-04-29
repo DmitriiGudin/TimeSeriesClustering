@@ -15,8 +15,10 @@ import time
 csv_filename = 'sim_ARI.csv'
 
 # Lists of values for sigma_squared (noise-to-signal level), s (smoothness), gamma (EBIC parameter) and b (bandwidth) to consider:
-sigma_squared = [1, 2]
-s = [0, 1]
+# sigma_squared = [1, 2]
+sigma_squared = [1]
+#s = [0, 1]
+s = [1]
 #gamma = [0.25, 0.5, 1]
 gamma = [0.5]
 #b = [0.1, 0.15, 0.2, 0.25, 0.3, 0.35]
@@ -26,11 +28,11 @@ b = [0.3]
 #p = [50, 100]
 p = [50]
 #n = [500]
-n = [100]
+n = [250]
 f = [0.4, 0.8]
 
 # Number of simulation iterations for each combination of values.
-N = 10
+N = 3
 
 # After how many simulation instances to print an update.
 reporting_freq = 1
